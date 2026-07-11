@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#102743">
+<title>IFC Digital – B1.2.1 Aufmaß</title>
+<style>
+:root{
+  --navy:#102743; --navy2:#0b1d34; --blue:#2478ef; --blue2:#0b5fd6;
+  --bg:#edf2f8; --card:#ffffff; --text:#172235; --muted:#6d7b8e;
+  --line:#dce5ef; --green:#2dc878; --yellow:#ffb63b; --red:#f05263;
+  --shadow:0 10px 30px rgba(24,47,77,.12);
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-family:Inter,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text)}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer}
+.app{display:grid;grid-template-columns:225px 1fr;min-height:100vh}
+aside{background:linear-gradient(180deg,var(--navy),var(--navy2));color:white;padding:22px 14px;display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
+.brand{font-size:29px;font-weight:900;padding:6px 12px 26px;letter-spacing:.5px}
+.brand small{display:block;color:#f4c53b;font-size:10px;letter-spacing:2px;margin-top:2px}
+nav{display:flex;flex-direction:column;gap:8px}
+nav button{border:0;background:transparent;color:#dce8f5;padding:14px;border-radius:12px;text-align:left}
+nav button.active,nav button:hover{background:linear-gradient(135deg,var(--blue),var(--blue2));color:#fff}
+main{padding:25px;overflow:auto}
+.view{display:none}.view.active{display:block}
+.top{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:18px}
+.top h1{margin:0 0 5px;font-size:29px}.top p{margin:0;color:var(--muted)}
+.primary,.secondary,.danger{border-radius:11px;padding:12px 16px;font-weight:800}
+.primary{border:0;background:linear-gradient(135deg,var(--blue),var(--blue2));color:white}
+.secondary{border:1px solid #cdd8e5;background:white;color:var(--text)}
+.danger{border:1px solid #f3c1c7;background:#fff4f6;color:#b72f40}
+.card{background:var(--card);border:1px solid var(--line);border-radius:17px;padding:18px;box-shadow:var(--shadow)}
+.grid{display:grid;grid-template-columns:1.15fr .85fr;gap:18px}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:16px}
+.kpi{background:#f5f8fc;border-radius:13px;padding:14px}
+.kpi b{display:block;font-size:21px}.kpi span{font-size:12px;color:var(--muted)}
+.progress{height:9px;background:#e7edf4;border-radius:999px;overflow:hidden}.progress i{display:block;height:100%;background:var(--green);width:0%;transition:.2s}
+.form{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form .full{grid-column:1/-1}
+label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px}
+input,select,textarea{width:100%;padding:12px;border:1px solid #cad6e4;border-radius:10px;background:white}
+textarea{min-height:90px}
+.checks{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.check{background:#f7fafe;border:1px solid var(--line);padding:11px;border-radius:10px;color:var(--text)}
+.check input{width:auto;margin-right:8px}
+.photo{border:2px dashed #b6c4d4;border-radius:12px;padding:18px;text-align:center;background:#fbfdff;color:var(--muted)}
+.photo.ready{border-color:var(--green);background:#f1fff7;color:#176f47}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+.result{font-size:24px;font-weight:900;margin-top:14px}
+.hint{background:#eef5ff;border-left:4px solid var(--blue);padding:12px 14px;border-radius:9px;margin-top:14px}
+.list{width:100%;border-collapse:collapse}
+.list th,.list td{padding:10px;border-bottom:1px solid var(--line);font-size:13px;text-align:left}
+.list th{color:var(--muted)}
+.status{display:inline-block;border-radius:999px;padding:4px 8px;font-size:12px}
+.ok{background:#ddf7ea;color:#187249}.warn{background:#fff3d8;color:#9c6500}.bad{background:#ffe3e7;color:#a82f3f}
+.assist{background:linear-gradient(180deg,#132e50,#0d2038);color:white;border-radius:17px;padding:18px;box-shadow:var(--shadow)}
+.assist h2{margin:0 0 12px}
+.assist p{line-height:1.5}
+.checkline{padding:10px 0;border-bottom:1px solid rgba(255,255,255,.1)}
+.checkline:last-child{border-bottom:0}
+.empty{color:var(--muted);text-align:center;padding:24px}
+.toast{position:fixed;right:22px;bottom:22px;background:#102743;color:#fff;padding:14px 18px;border-radius:12px;box-shadow:var(--shadow);opacity:0;transform:translateY(10px);transition:.2s;z-index:50}
+.toast.show{opacity:1;transform:translateY(0)}
+@media(max-width:950px){
+  .app{grid-template-columns:1fr}
+  aside{position:sticky;top:0;height:auto;z-index:20;padding:10px}
+  .brand{display:none}
+  nav{flex-direction:row;overflow:auto}
+  nav button{white-space:nowrap;padding:10px}
+  .grid{grid-template-columns:1fr}
+  .kpis{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:600px){
+  main{padding:14px}
+  .form,.checks,.kpis{grid-template-columns:1fr}
+  .top{flex-direction:column}
+}
+</style>
+</head>
+<body>
+<div class="app">
+<aside>
+  <div class="brand">IFC <small>FOLIENTECHNIK</small></div>
+  <nav>
+    <button class="active" data-view="dashboard">⌂ Übersicht</button>
+    <button data-view="measure">📏 Aufmaß</button>
+    <button data-view="windows">▤ Fensterliste</button>
+    <button data-view="check">🤖 IFC Prüfung</button>
+    <button data-view="material">📦 Material</button>
+  </nav>
+</aside>
+
+<main>
+<section id="dashboard" class="view active">
+  <div class="top">
+    <div><h1>Forschung Italia</h1><p>B1.2.1 – testbares Aufmaß-Modul</p></div>
+    <button class="primary" onclick="showView('measure')">▶ Aufmaß starten</button>
+  </div>
+  <div class="kpis">
+    <div class="kpi"><b id="dashCount">0</b><span>Fenster erfasst</span></div>
+    <div class="kpi"><b id="dashArea">0,00 m²</b><span>Gesamtfläche</span></div>
+    <div class="kpi"><b id="dashPhotos">0</b><span>Fotos vorhanden</span></div>
+    <div class="kpi"><b id="dashComplete">0%</b><span>Vollständigkeit</span></div>
+  </div>
+  <div class="card">
+    <h3>Projektfortschritt</h3>
+    <div class="progress"><i id="progressBar"></i></div>
+    <div class="hint">Ziel dieses Sprints: Mehrere Fenster erfassen, Foto und Montagebedingungen dokumentieren, anschließend vom IFC Assist prüfen lassen.</div>
+  </div>
+</section>
+
+<section id="measure" class="view">
+  <div class="top">
+    <div><h1>Aufmaß</h1><p id="counter">Fenster 1</p></div>
+    <button class="secondary" onclick="showView('windows')">Fensterliste öffnen</button>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="form">
+        <div><label>Raum</label><input id="room" value="EG 1.12"></div>
+        <div><label>Bauteilnummer</label><input id="element" value="EG-F01"></div>
+        <div><label>Breite in mm</label><input id="width" type="number" value="1240"></div>
+        <div><label>Höhe in mm</label><input id="height" type="number" value="2150"></div>
+        <div><label>Anzahl</label><input id="qty" type="number" value="1"></div>
+        <div><label>Montageart</label><select id="mount"><option>Innen</option><option>Außen</option></select></div>
+
+        <div class="full">
+          <label>Montagebedingungen</label>
+          <div class="checks">
+            <label class="check"><input type="checkbox" id="openable" checked>Von innen zu öffnen</label>
+            <label class="check"><input type="checkbox" id="fixed">Festverglasung</label>
+            <label class="check"><input type="checkbox" id="ladder">Leiter ausreichend</label>
+            <label class="check"><input type="checkbox" id="scaffold">Rollgerüst erforderlich</label>
+            <label class="check"><input type="checkbox" id="lift">Hebebühne erforderlich</label>
+            <label class="check"><input type="checkbox" id="psa">PSA gegen Absturz</label>
+          </div>
+        </div>
+
+        <div class="full"><label>Besonderheiten / Zugang</label><textarea id="notes" placeholder="Zum Beispiel: Zugang nur über Innenhof, Hebebühne 18 m erforderlich, Fenster nicht zu öffnen ..."></textarea></div>
+
+        <div class="full">
+          <label>Foto der Situation</label>
+          <div id="photoBox" class="photo" onclick="addPhoto()">📷 Foto hinzufügen<br><small>Im Prototyp wird der Upload simuliert.</small></div>
+        </div>
+      </div>
+
+      <div class="result" id="result">2,67 m²</div>
+      <div class="actions">
+        <button class="primary" onclick="saveAndNext()">Speichern & nächstes Fenster</button>
+        <button class="secondary" onclick="saveAndList()">Speichern & Fensterliste</button>
+        <button class="secondary" onclick="saveAndMaterial()">Speichern & weiter zum Material</button>
+      </div>
+    </div>
+
+    <div class="assist">
+      <h2>🤖 IFC Assist</h2>
+      <p>Ich prüfe bereits während der Eingabe:</p>
+      <div class="checkline" id="assistMeasure">⚪ Maße werden geprüft</div>
+      <div class="checkline" id="assistPhoto">⚠️ Foto fehlt</div>
+      <div class="checkline" id="assistAccess">✅ Montagezugang angegeben</div>
+      <div class="checkline" id="assistNext">➡️ Danach: nächstes Fenster erfassen</div>
+    </div>
+  </div>
+</section>
+
+<section id="windows" class="view">
+  <div class="top">
+    <div><h1>Fensterliste</h1><p>Alle bisher erfassten Elemente</p></div>
+    <button class="primary" onclick="showView('measure')">+ Weiteres Fenster</button>
+  </div>
+  <div class="card">
+    <div id="emptyList" class="empty">Noch keine Fenster gespeichert.</div>
+    <table id="windowTable" class="list" style="display:none">
+      <thead><tr><th>Nr.</th><th>Raum</th><th>Bauteil</th><th>Maße</th><th>m²</th><th>Foto</th><th>Zugang</th><th></th></tr></thead>
+      <tbody id="windowRows"></tbody>
+    </table>
+  </div>
+  <div class="actions">
+    <button class="secondary" onclick="showView('check')">IFC Prüfung</button>
+    <button class="primary" onclick="showView('material')">Weiter zum Material</button>
+  </div>
+</section>
+
+<section id="check" class="view">
+  <div class="top">
+    <div><h1>IFC Prüfung</h1><p>Vollständigkeitsprüfung des Aufmaßes</p></div>
+    <button class="primary" onclick="runCheck()">Jetzt prüfen</button>
+  </div>
+  <div class="grid">
+    <div class="card" id="checkResults"></div>
+    <div class="assist">
+      <h2>Freigabestatus</h2>
+      <p id="releaseText">Noch nicht geprüft.</p>
+      <button class="primary" onclick="showView('material')" style="width:100%">Weiter zum Material</button>
+    </div>
+  </div>
+</section>
+
+<section id="material" class="view">
+  <div class="top">
+    <div><h1>Material</h1><p>Dieser Schritt ist bewusst nur der Übergang zum nächsten Sprint.</p></div>
+    <button class="secondary" onclick="showView('windows')">Zurück zur Fensterliste</button>
+  </div>
+  <div class="card">
+    <h3>Aufmaß wurde übergeben</h3>
+    <p><b id="materialCount">0 Fenster</b> mit <b id="materialArea">0,00 m²</b> stehen für die Materialplanung bereit.</p>
+    <div class="hint">B1.2.1 endet hier. Nach deiner Freigabe bauen wir als Nächstes B1.2.2 – Material.</div>
+  </div>
+</section>
+</main>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+const windows = [];
+let photoAdded = false;
+const views = [...document.querySelectorAll('.view')];
+
+function showView(id){
+  views.forEach(v=>v.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active', b.dataset.view===id));
+  window.scrollTo(0,0);
+  if(id==='windows') renderWindows();
+  if(id==='check') runCheck();
+  if(id==='material') updateMaterialSummary();
+}
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>showView(b.dataset.view));
+
+function area(){
+  const w=(+document.getElementById('width').value||0)/1000;
+  const h=(+document.getElementById('height').value||0)/1000;
+  const q=(+document.getElementById('qty').value||0);
+  return w*h*q;
+}
+function updateLive(){
+  document.getElementById('result').textContent=area().toFixed(2).replace('.',',')+' m²';
+  document.getElementById('assistMeasure').textContent=area()>0?'✅ Maße vollständig':'❌ Maße fehlen';
+  document.getElementById('assistPhoto').textContent=photoAdded?'✅ Foto vorhanden':'⚠️ Foto fehlt';
+  document.getElementById('assistAccess').textContent=accessText()==='nicht angegeben'?'⚠️ Montagezugang fehlt':'✅ Montagezugang angegeben';
+}
+['width','height','qty'].forEach(id=>document.getElementById(id).addEventListener('input',updateLive));
+['openable','fixed','ladder','scaffold','lift','psa'].forEach(id=>document.getElementById(id).addEventListener('change',updateLive));
+
+function addPhoto(){
+  photoAdded=true;
+  const b=document.getElementById('photoBox');
+  b.classList.add('ready');
+  b.innerHTML='✅ Foto hinterlegt<br><small>Tippen, um ein anderes Foto zu simulieren.</small>';
+  updateLive();
+  toast('Foto wurde hinterlegt');
+}
+function accessText(){
+  const a=[];
+  if(document.getElementById('openable').checked)a.push('innen/öffnbar');
+  if(document.getElementById('fixed').checked)a.push('Festglas');
+  if(document.getElementById('ladder').checked)a.push('Leiter');
+  if(document.getElementById('scaffold').checked)a.push('Rollgerüst');
+  if(document.getElementById('lift').checked)a.push('Hebebühne');
+  if(document.getElementById('psa').checked)a.push('PSA');
+  return a.join(', ') || 'nicht angegeben';
+}
+function collect(){
+  return {
+    nr: windows.length+1,
+    room: document.getElementById('room').value.trim(),
+    element: document.getElementById('element').value.trim(),
+    width:+document.getElementById('width').value,
+    height:+document.getElementById('height').value,
+    qty:+document.getElementById('qty').value,
+    mount:document.getElementById('mount').value,
+    access:accessText(),
+    notes:document.getElementById('notes').value.trim(),
+    photo:photoAdded,
+    area:area()
+  };
+}
+function valid(item){
+  if(!item.room || !item.element || item.width<=0 || item.height<=0 || item.qty<=0){
+    toast('Bitte Raum, Bauteilnummer und Maße vollständig eingeben.');
+    return false;
+  }
+  return true;
+}
+function saveCurrent(){
+  const item=collect();
+  if(!valid(item)) return false;
+  windows.push(item);
+  updateAll();
+  return true;
+}
+function saveAndNext(){
+  if(!saveCurrent()) return;
+  const next=windows.length+1;
+  document.getElementById('element').value='EG-F'+String(next).padStart(2,'0');
+  document.getElementById('notes').value='';
+  photoAdded=false;
+  const b=document.getElementById('photoBox');
+  b.classList.remove('ready');
+  b.innerHTML='📷 Foto hinzufügen<br><small>Im Prototyp wird der Upload simuliert.</small>';
+  document.getElementById('counter').textContent='Fenster '+next;
+  updateLive();
+  toast('Fenster gespeichert – nächstes Fenster ist bereit.');
+}
+function saveAndList(){
+  if(saveCurrent()){showView('windows');toast('Fenster gespeichert.');}
+}
+function saveAndMaterial(){
+  if(saveCurrent()){showView('material');toast('Aufmaß an Material übergeben.');}
+}
+function renderWindows(){
+  const table=document.getElementById('windowTable');
+  const empty=document.getElementById('emptyList');
+  if(!windows.length){table.style.display='none';empty.style.display='block';return;}
+  table.style.display='table';empty.style.display='none';
+  document.getElementById('windowRows').innerHTML=windows.map((x,i)=>`
+    <tr>
+      <td>${x.nr}</td>
+      <td>${x.room}</td>
+      <td>${x.element}</td>
+      <td>${x.width} × ${x.height}</td>
+      <td>${x.area.toFixed(2).replace('.',',')}</td>
+      <td><span class="status ${x.photo?'ok':'warn'}">${x.photo?'vorhanden':'fehlt'}</span></td>
+      <td>${x.access}</td>
+      <td><button class="danger" onclick="removeWindow(${i})">Löschen</button></td>
+    </tr>`).join('');
+}
+function removeWindow(i){
+  windows.splice(i,1);
+  windows.forEach((x,idx)=>x.nr=idx+1);
+  updateAll();renderWindows();toast('Fenster gelöscht.');
+}
+function updateAll(){
+  const count=windows.length;
+  const totalArea=windows.reduce((s,x)=>s+x.area,0);
+  const photos=windows.filter(x=>x.photo).length;
+  const complete=completion();
+  document.getElementById('dashCount').textContent=count;
+  document.getElementById('dashArea').textContent=totalArea.toFixed(2).replace('.',',')+' m²';
+  document.getElementById('dashPhotos').textContent=photos;
+  document.getElementById('dashComplete').textContent=complete+'%';
+  document.getElementById('progressBar').style.width=complete+'%';
+  updateMaterialSummary();
+}
+function completion(){
+  if(!windows.length)return 0;
+  const fields=windows.length*3;
+  let ok=0;
+  windows.forEach(x=>{
+    if(x.area>0)ok++;
+    if(x.photo)ok++;
+    if(x.access!=='nicht angegeben')ok++;
+  });
+  return Math.round(ok/fields*100);
+}
+function runCheck(){
+  const results=document.getElementById('checkResults');
+  if(!windows.length){
+    results.innerHTML='<h3>Prüfergebnis</h3><p><span class="status bad">Nicht vollständig</span></p><p>❌ Noch kein Fenster erfasst.</p>';
+    document.getElementById('releaseText').innerHTML='🔴 Noch nicht freigabefähig.';
+    return;
+  }
+  const missingPhotos=windows.filter(x=>!x.photo).length;
+  const missingAccess=windows.filter(x=>x.access==='nicht angegeben').length;
+  const ready=missingPhotos===0 && missingAccess===0;
+  results.innerHTML=`
+    <h3>Prüfergebnis</h3>
+    <p>✅ ${windows.length} Fenster erfasst</p>
+    <p>✅ Maße vollständig</p>
+    <p>${missingPhotos?`⚠️ ${missingPhotos} Foto(s) fehlen`:'✅ Fotos vollständig'}</p>
+    <p>${missingAccess?`⚠️ ${missingAccess} Montagebedingung(en) fehlen`:'✅ Montagebedingungen vollständig'}</p>
+    <p><b>Gesamtfläche: ${windows.reduce((s,x)=>s+x.area,0).toFixed(2).replace('.',',')} m²</b></p>`;
+  document.getElementById('releaseText').innerHTML=ready?'🟢 Aufmaß vollständig und bereit für Material.':'🟡 Aufmaß gespeichert, aber noch nicht vollständig.';
+}
+function updateMaterialSummary(){
+  const count=windows.length;
+  const totalArea=windows.reduce((s,x)=>s+x.area,0);
+  document.getElementById('materialCount').textContent=count+' Fenster';
+  document.getElementById('materialArea').textContent=totalArea.toFixed(2).replace('.',',')+' m²';
+}
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2200);
+}
+updateLive();
+</script>
+</body>
+</html>
