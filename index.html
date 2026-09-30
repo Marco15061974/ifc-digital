@@ -390,5 +390,34 @@ function toast(msg){
 updateLive();
 </script>
   <script src="config.js"></script>
+  <script>
+(async function () {
+  try {
+    const response = await fetch(
+      window.IFC_CONFIG.apiBaseUrl + "/api/v1/test-project"
+    );
+
+    if (!response.ok) throw new Error("HTTP " + response.status);
+
+    const data = await response.json();
+
+    console.log("IFC Backend verbunden:", data);
+
+    alert(
+      "IFC Backend verbunden ✅\n" +
+      "Projekt: " + data.project_id + "\n" +
+      "Fenster: " + data.window_id + "\n" +
+      "Revision: " + data.revision
+    );
+  } catch (error) {
+    console.error("IFC Backend nicht erreichbar:", error);
+
+    alert(
+      "IFC Backend-Verbindung fehlgeschlagen ❌\n" +
+      error.message
+    );
+  }
+})();
+  </script>
 </body>
 </html>
