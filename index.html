@@ -97,6 +97,7 @@ textarea{min-height:90px}
   <div class="top">
     <div><h1>Forschung Italia</h1><p>B1.2.1 – testbares Aufmaß-Modul</p></div>
     <button class="primary" onclick="showView('measure')">▶ Aufmaß starten</button>
+    <div id="serverStatus">🟡 Serverstatus wird geprüft …</div>
   </div>
   <div class="kpis">
     <div class="kpi"><b id="dashCount">0</b><span>Fenster erfasst</span></div>
@@ -403,19 +404,11 @@ updateLive();
 
     console.log("IFC Backend verbunden:", data);
 
-    alert(
-      "IFC Backend verbunden ✅\n" +
-      "Projekt: " + data.project_id + "\n" +
-      "Fenster: " + data.window_id + "\n" +
-      "Revision: " + data.revision
-    );
+document.getElementById("serverStatus").textContent = "🟢 Backend verbunden · Rev. " + data.revision;
   } catch (error) {
     console.error("IFC Backend nicht erreichbar:", error);
 
-    alert(
-      "IFC Backend-Verbindung fehlgeschlagen ❌\n" +
-      error.message
-    );
+document.getElementById("serverStatus").textContent = "🔴 Backend offline";
   }
 })();
   </script>
