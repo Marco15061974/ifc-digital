@@ -22,8 +22,8 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.end_headers()
         def do_POST(self):
-        if self.path == "/api/v1/measurements":
-            try:
+            if self.path == "/api/v1/measurements":
+                try:
                 content_length = int(self.headers.get("Content-Length", "0"))
                 body = self.rfile.read(content_length)
                 data = json.loads(body.decode("utf-8"))
@@ -33,13 +33,13 @@ class Handler(BaseHTTPRequestHandler):
                     "message": "Aufmaßdaten erfolgreich empfangen",
                     "data": data
                 })
-            except Exception as error:
+                except Exception as error:
                 return self.send_json(400, {
                     "status": "error",
                     "message": str(error)
                 })
 
-        return self.send_json(404, {"error": "not_found"})
+            return self.send_json(404, {"error": "not_found"})
     def do_GET(self):
         if self.path == "/health":
             return self.send_json(200, {
