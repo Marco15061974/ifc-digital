@@ -292,6 +292,7 @@ function saveCurrent(){
   if(!valid(item)) return false;
   windows.push(item);
   updateAll();
+  fetch(window.IFC_CONFIG.apiBaseUrl + "/api/v1/measurements", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(item)}).then(r=>{if(!r.ok) throw new Error("HTTP "+r.status); return r.json();}).then(()=>toast("🟢 Im Backend gespeichert")).catch(err=>toast("🔴 Backend-Speicherung fehlgeschlagen: "+err.message));
   return true;
 }
 function saveAndNext(){
