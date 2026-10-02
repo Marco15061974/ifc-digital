@@ -33,7 +33,7 @@ class Handler(BaseHTTPRequestHandler):
                     "message": "Aufmaßdaten erfolgreich empfangen",
                     "data": data
                 })
-                    except Exception as error:
+                except Exception as error:
                     return self.send_json(400, {
                     "status": "error",
                     "message": str(error)
