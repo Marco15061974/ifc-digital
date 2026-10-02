@@ -4,7 +4,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, *args):
-        pass
+        super().log_message(*args)
 
     
     def send_json(self, status, payload):
