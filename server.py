@@ -24,22 +24,22 @@ class Handler(BaseHTTPRequestHandler):
         def do_POST(self):
             if self.path == "/api/v1/measurements":
                 try:
-                content_length = int(self.headers.get("Content-Length", "0"))
-                body = self.rfile.read(content_length)
-                data = json.loads(body.decode("utf-8"))
+                    content_length = int(self.headers.get("Content-Length", "0"))
+                    body = self.rfile.read(content_length)
+                    data = json.loads(body.decode("utf-8"))
 
-                return self.send_json(200, {
+                    return self.send_json(200, {
                     "status": "received",
                     "message": "Aufmaßdaten erfolgreich empfangen",
                     "data": data
                 })
-                except Exception as error:
-                return self.send_json(400, {
+                    except Exception as error:
+                    return self.send_json(400, {
                     "status": "error",
                     "message": str(error)
                 })
 
-            return self.send_json(404, {"error": "not_found"})
+                return self.send_json(404, {"error": "not_found"})
     def do_GET(self):
         if self.path == "/health":
             return self.send_json(200, {
