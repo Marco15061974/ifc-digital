@@ -55,8 +55,7 @@ class Handler(BaseHTTPRequestHandler):
                 "revision": 6,
                 "test_data": True
             })
-
-            if self.path == "/api/v1/measurements":
+        if self.path == "/api/v1/measurements":
                 return self.send_json(200, {
                 "status": "ok",
                 "measurements": []
