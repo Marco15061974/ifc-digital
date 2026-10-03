@@ -57,10 +57,10 @@ class Handler(BaseHTTPRequestHandler):
             })
 
             if self.path == "/api/v1/measurements":
-        return self.send_json(200, {
-            "status": "ok",
-            "measurements": []
-        })
+            return self.send_json(200, {
+                "status": "ok",
+                "measurements": []
+            })
 
         return self.send_json(404, {"error": "not_found"})
 
