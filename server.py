@@ -2,6 +2,8 @@ import os
 import json
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
+measurements = []
+
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, *args):
         super().log_message(*args)
@@ -27,6 +29,7 @@ class Handler(BaseHTTPRequestHandler):
                 content_length = int(self.headers.get("Content-Length", "0"))
                 body = self.rfile.read(content_length)
                 data = json.loads(body.decode("utf-8"))
+                measurements.append(data)
 
                 return self.send_json(200, {
                 "status": "received",
@@ -58,7 +61,7 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/api/v1/measurements":
                 return self.send_json(200, {
                 "status": "ok",
-                "measurements": []
+                "measurements": 
             })
 
         return self.send_json(404, {"error": "not_found"})
