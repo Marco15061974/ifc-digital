@@ -2,7 +2,18 @@ import os
 import json
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
+DATA_FILE = "measurements.json"
 measurements = []
+def load_measurements():
+    if os.path.exists(DATA_FILE):
+        try:
+            with open(DATA_FILE, "r", encoding="utf-8") as file:
+                return json.load(file)
+        except Exception:
+            return []
+    return []
+
+measurements = load_measurements()
 
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, *args):
@@ -30,7 +41,8 @@ class Handler(BaseHTTPRequestHandler):
                 body = self.rfile.read(content_length)
                 data = json.loads(body.decode("utf-8"))
                 measurements.append(data)
-
+                with open(DATA_FILE, "w", encoding="utf-8") as file:
+                    json.dump(measurements, file, ensure_ascii=False, indent=2)
                 return self.send_json(200, {
                 "status": "received",
                 "message": "Aufmaßdaten erfolgreich empfangen",
