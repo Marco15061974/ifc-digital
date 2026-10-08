@@ -1,0 +1,83 @@
+
+name: IFC Digital PostgreSQL Test
+
+on:
+  push:
+    branches:
+      - sprint-postgresql-persistence
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-postgresql:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: ifc_test
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: ifc_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ifc_test -d ifc_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://ifc_test:test_password@localhost:5432/ifc_test
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Check Python syntax
+        run: python -m py_compile server.py
+
+      - name: Test PostgreSQL storage
+        run: |
+          python - <<'PY'
+          import server
+          from psycopg.types.json import Jsonb
+
+          server.initialize_database()
+
+          test_data = {
+              "project_id": "IFC-TEST-001",
+              "window_id": "W-001",
+              "width_mm": 1200,
+              "height_mm": 1500
+          }
+
+          with server.connect_db() as connection:
+              with connection.cursor() as cursor:
+                  cursor.execute(
+                      "INSERT INTO measurements (payload) VALUES (%s) RETURNING id",
+                      (Jsonb(test_data),)
+                  )
+                  measurement_id = cursor.fetchone()[0]
+
+          with server.connect_db() as connection:
+              with connection.cursor() as cursor:
+                  cursor.execute(
+                      "SELECT payload FROM measurements WHERE id = %s",
+                      (measurement_id,)
+                  )
+                  result = cursor.fetchone()[0]
+
+          assert result == test_data
+          print("PostgreSQL storage test passed")
+          PY
