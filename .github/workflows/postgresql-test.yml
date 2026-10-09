@@ -1,5 +1,4 @@
-
-name: IFC Digital PostgreSQL Test
+name: IFC Digital PostgreSQL Security Test
 
 on:
   push:
@@ -13,7 +12,6 @@ permissions:
 jobs:
   test-postgresql:
     runs-on: ubuntu-latest
-
     services:
       postgres:
         image: postgres:18
@@ -31,53 +29,87 @@ jobs:
 
     env:
       DATABASE_URL: postgresql://ifc_test:test_password@localhost:5432/ifc_test
+      IFC_API_TOKEN: test-only-token-with-more-than-32-characters-123456
+      IFC_ALLOWED_ORIGIN: https://ifc-test.example
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-
       - name: Install dependencies
-        run: pip install -r requirements.txt
-
+        run: python -m pip install -r requirements.txt
       - name: Check Python syntax
         run: python -m py_compile server.py
-
-      - name: Test PostgreSQL storage
+      - name: Test PostgreSQL storage and HTTP access protection
         run: |
           python - <<'PY'
+          import json
+          import os
+          import subprocess
+          import sys
+          import time
+          from urllib.error import HTTPError, URLError
+          from urllib.request import Request, urlopen
           import server
-          from psycopg.types.json import Jsonb
 
           server.initialize_database()
+          port = '18765'
+          base = 'http://127.0.0.1:' + port
+          env = dict(os.environ, PORT=port)
+          proc = subprocess.Popen([sys.executable, 'server.py'], env=env)
 
-          test_data = {
-              "project_id": "IFC-TEST-001",
-              "window_id": "W-001",
-              "width_mm": 1200,
-              "height_mm": 1500
-          }
+          def request(path, method='GET', data=None, token=None, origin=None):
+              headers = {}
+              if token is not None:
+                  headers['Authorization'] = 'Bearer ' + token
+              if origin is not None:
+                  headers['Origin'] = origin
+              if data is not None:
+                  headers['Content-Type'] = 'application/json'
+                  data = json.dumps(data).encode('utf-8')
+              req = Request(base + path, data=data, headers=headers, method=method)
+              try:
+                  with urlopen(req, timeout=5) as response:
+                      return response.status, json.load(response), response.headers
+              except HTTPError as error:
+                  return error.code, json.load(error), error.headers
 
-          with server.connect_db() as connection:
-              with connection.cursor() as cursor:
-                  cursor.execute(
-                      "INSERT INTO measurements (payload) VALUES (%s) RETURNING id",
-                      (Jsonb(test_data),)
-                  )
-                  measurement_id = cursor.fetchone()[0]
+          try:
+              for attempt in range(40):
+                  if proc.poll() is not None:
+                      raise RuntimeError('Server exited before becoming ready')
+                  try:
+                      status, _, _ = request('/health')
+                      if status == 200:
+                          break
+                  except (URLError, TimeoutError):
+                      time.sleep(0.25)
+              else:
+                  raise RuntimeError('Server did not become ready')
 
-          with server.connect_db() as connection:
-              with connection.cursor() as cursor:
-                  cursor.execute(
-                      "SELECT payload FROM measurements WHERE id = %s",
-                      (measurement_id,)
-                  )
-                  result = cursor.fetchone()[0]
+              path = '/api/v1/measurements'
+              valid_token = os.environ['IFC_API_TOKEN']
+              sample = {'project_id': 'IFC-TEST-001', 'window_id': 'W-001', 'width_mm': 1200}
+              assert request(path)[0] == 401, 'GET without token must be blocked'
+              assert request(path, token='wrong-token')[0] == 401, 'GET with wrong token must be blocked'
+              assert request(path, method='POST', data=sample)[0] == 401, 'POST without token must be blocked'
+              assert request(path, method='POST', data=sample, token='wrong-token')[0] == 401, 'POST with wrong token must be blocked'
 
-          assert result == test_data
-          print("PostgreSQL storage test passed")
+              status, saved, headers = request(path, method='POST', data=sample, token=valid_token, origin='https://ifc-test.example')
+              assert status == 200 and saved['data'] == sample and saved['id'] > 0
+              assert headers.get('Access-Control-Allow-Origin') == 'https://ifc-test.example'
+              status, loaded, headers = request(path, token=valid_token, origin='https://untrusted.example')
+              assert status == 200 and sample in loaded['measurements']
+              assert headers.get('Access-Control-Allow-Origin') is None, 'Untrusted origin must not receive CORS permission'
+              print('Database and HTTP authentication tests passed')
+          finally:
+              proc.terminate()
+              try:
+                  proc.wait(timeout=5)
+              except subprocess.TimeoutExpired:
+                  proc.kill()
+                  proc.wait()
           PY
