@@ -110,6 +110,128 @@ jobs:
               try:
                   proc.wait(timeout=5)
               except subprocess.TimeoutExpired:
+              
+      - name: Test subcontractor database schema
+        run: |
+          python - <<'PY'
+          import hashlib
+          from pathlib import Path
+          import psycopg
+          from psycopg.types.json import Jsonb
+          import os
+
+          sql = Path(
+              "database/migrations/001_subcontractor_schema.sql"
+          ).read_text(encoding="utf-8")
+
+          with psycopg.connect(os.environ["DATABASE_URL"]) as db:
+              with db.cursor() as cur:
+                  cur.execute(sql)
+
+              tables = [
+                  "subcontractors",
+                  "document_types",
+                  "subcontractor_documents",
+                  "subcontractor_project_assignments",
+                  "project_document_requirements",
+                  "document_reviews",
+              ]
+
+              with db.cursor() as cur:
+                  for table in tables:
+                      cur.execute(
+                          "SELECT to_regclass(%s)",
+                          (f"public.{table}",)
+                      )
+                      assert cur.fetchone()[0] is not None, table
+
+                  cur.execute(
+                      "INSERT INTO subcontractors "
+                      "(company_name) VALUES (%s) RETURNING id",
+                      ("IFC Test Nachunternehmer",)
+                  )
+                  company_id = cur.fetchone()[0]
+
+                  cur.execute(
+                      "INSERT INTO document_types "
+                      "(code, label, requires_expiry) "
+                      "VALUES (%s, %s, TRUE) RETURNING id",
+                      ("LIABILITY", "Betriebshaftpflicht")
+                  )
+                  type_id = cur.fetchone()[0]
+
+                  for project in ("TEST-A", "TEST-B"):
+                      cur.execute(
+                          "INSERT INTO subcontractor_project_assignments "
+                          "(subcontractor_id, project_id) "
+                          "VALUES (%s, %s)",
+                          (company_id, project)
+                      )
+
+                      cur.execute(
+                          "INSERT INTO project_document_requirements "
+                          "(project_id, document_type_id) "
+                          "VALUES (%s, %s)",
+                          (project, type_id)
+                      )
+
+                  document_ids = []
+                  for version in (1, 2):
+                      cur.execute(
+                          "INSERT INTO subcontractor_documents "
+                          "(subcontractor_id, document_type_id, "
+                          "version, storage_key, original_filename, "
+                          "content_type, sha256) "
+                          "VALUES (%s, %s, %s, %s, %s, %s, %s) "
+                          "RETURNING id",
+                          (
+                              company_id, type_id, version,
+                              f"test/company-{company_id}/v{version}",
+                              f"versicherung-v{version}.pdf",
+                              "application/pdf",
+                              hashlib.sha256(
+                                  str(version).encode()
+                              ).hexdigest()
+                          )
+                      )
+                      document_ids.append(cur.fetchone()[0])
+
+                  cur.execute(
+                      "INSERT INTO document_reviews "
+                      "(document_id, project_id, decision, "
+                      "reviewer_user_id, notes) "
+                      "VALUES (%s, %s, %s, %s, %s)",
+                      (
+                          document_ids[1], "TEST-A",
+                          "approved", 1, "Testfreigabe"
+                      )
+                  )
+
+                  cur.execute(
+                      "SELECT COUNT(*) FROM "
+                      "subcontractor_project_assignments "
+                      "WHERE subcontractor_id = %s",
+                      (company_id,)
+                  )
+                  assert cur.fetchone()[0] == 2
+
+                  cur.execute(
+                      "SELECT COUNT(*) FROM subcontractor_documents "
+                      "WHERE subcontractor_id = %s",
+                      (company_id,)
+                  )
+                  assert cur.fetchone()[0] == 2
+
+                  cur.execute(
+                      "SELECT decision FROM document_reviews "
+                      "WHERE document_id = %s",
+                      (document_ids[1],)
+                  )
+                  assert cur.fetchone()[0] == "approved"
+
+          print("Subcontractor database tests passed")
+          PY
+
                   proc.kill()
                   proc.wait()
           PY
