@@ -110,7 +110,12 @@ jobs:
               try:
                   proc.wait(timeout=5)
               except subprocess.TimeoutExpired:
-              
+           
+              proc.kill()
+              proc.wait()
+          PY
+
+   
       - name: Test subcontractor database schema
         run: |
           python - <<'PY'
