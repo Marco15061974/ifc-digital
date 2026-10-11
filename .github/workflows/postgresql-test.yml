@@ -1,3 +1,4 @@
+
 name: IFC Digital PostgreSQL Security Test
 
 on:
@@ -12,6 +13,7 @@ permissions:
 jobs:
   test-postgresql:
     runs-on: ubuntu-latest
+
     services:
       postgres:
         image: postgres:18
@@ -35,14 +37,18 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+
       - name: Install dependencies
         run: python -m pip install -r requirements.txt
+
       - name: Check Python syntax
         run: python -m py_compile server.py
+
       - name: Test PostgreSQL storage and HTTP access protection
         run: |
           python - <<'PY'
@@ -59,9 +65,12 @@ jobs:
           port = '18765'
           base = 'http://127.0.0.1:' + port
           env = dict(os.environ, PORT=port)
-          proc = subprocess.Popen([sys.executable, 'server.py'], env=env)
+          proc = subprocess.Popen(
+              [sys.executable, 'server.py'], env=env
+          )
 
-          def request(path, method='GET', data=None, token=None, origin=None):
+          def request(path, method='GET', data=None,
+                      token=None, origin=None):
               headers = {}
               if token is not None:
                   headers['Authorization'] = 'Bearer ' + token
@@ -70,17 +79,30 @@ jobs:
               if data is not None:
                   headers['Content-Type'] = 'application/json'
                   data = json.dumps(data).encode('utf-8')
-              req = Request(base + path, data=data, headers=headers, method=method)
+              req = Request(
+                  base + path, data=data,
+                  headers=headers, method=method
+              )
               try:
                   with urlopen(req, timeout=5) as response:
-                      return response.status, json.load(response), response.headers
+                      return (
+                          response.status,
+                          json.load(response),
+                          response.headers
+                      )
               except HTTPError as error:
-                  return error.code, json.load(error), error.headers
+                  return (
+                      error.code,
+                      json.load(error),
+                      error.headers
+                  )
 
           try:
               for attempt in range(40):
                   if proc.poll() is not None:
-                      raise RuntimeError('Server exited before becoming ready')
+                      raise RuntimeError(
+                          'Server exited before becoming ready'
+                      )
                   try:
                       status, _, _ = request('/health')
                       if status == 200:
@@ -88,112 +110,147 @@ jobs:
                   except (URLError, TimeoutError):
                       time.sleep(0.25)
               else:
-                  raise RuntimeError('Server did not become ready')
+                  raise RuntimeError(
+                      'Server did not become ready'
+                  )
 
               path = '/api/v1/measurements'
               valid_token = os.environ['IFC_API_TOKEN']
-              sample = {'project_id': 'IFC-TEST-001', 'window_id': 'W-001', 'width_mm': 1200}
-              assert request(path)[0] == 401, 'GET without token must be blocked'
-              assert request(path, token='wrong-token')[0] == 401, 'GET with wrong token must be blocked'
-              assert request(path, method='POST', data=sample)[0] == 401, 'POST without token must be blocked'
-              assert request(path, method='POST', data=sample, token='wrong-token')[0] == 401, 'POST with wrong token must be blocked'
+              sample = {
+                  'project_id': 'IFC-TEST-001',
+                  'window_id': 'W-001',
+                  'width_mm': 1200
+              }
 
-              status, saved, headers = request(path, method='POST', data=sample, token=valid_token, origin='https://ifc-test.example')
-              assert status == 200 and saved['data'] == sample and saved['id'] > 0
-              assert headers.get('Access-Control-Allow-Origin') == 'https://ifc-test.example'
-              status, loaded, headers = request(path, token=valid_token, origin='https://untrusted.example')
-              assert status == 200 and sample in loaded['measurements']
-              assert headers.get('Access-Control-Allow-Origin') is None, 'Untrusted origin must not receive CORS permission'
-              print('Database and HTTP authentication tests passed')
+              assert request(path)[0] == 401
+              assert request(
+                  path, token='wrong-token'
+              )[0] == 401
+              assert request(
+                  path, method='POST', data=sample
+              )[0] == 401
+              assert request(
+                  path, method='POST',
+                  data=sample, token='wrong-token'
+              )[0] == 401
+
+              status, saved, headers = request(
+                  path, method='POST', data=sample,
+                  token=valid_token,
+                  origin='https://ifc-test.example'
+              )
+              assert status == 200
+              assert saved['data'] == sample
+              assert saved['id'] > 0
+              assert headers.get(
+                  'Access-Control-Allow-Origin'
+              ) == 'https://ifc-test.example'
+
+              status, loaded, headers = request(
+                  path, token=valid_token,
+                  origin='https://untrusted.example'
+              )
+              assert status == 200
+              assert sample in loaded['measurements']
+              assert headers.get(
+                  'Access-Control-Allow-Origin'
+              ) is None
+
+              print(
+                  'Database and HTTP authentication tests passed'
+              )
           finally:
               proc.terminate()
               try:
                   proc.wait(timeout=5)
               except subprocess.TimeoutExpired:
-           
-              proc.kill()
-              proc.wait()
+                  proc.kill()
+                  proc.wait()
           PY
 
-   
       - name: Test subcontractor database schema
         run: |
           python - <<'PY'
           import hashlib
+          import os
           from pathlib import Path
           import psycopg
-          from psycopg.types.json import Jsonb
-          import os
 
           sql = Path(
-              "database/migrations/001_subcontractor_schema.sql"
-          ).read_text(encoding="utf-8")
+              'database/migrations/001_subcontractor_schema.sql'
+          ).read_text(encoding='utf-8')
 
-          with psycopg.connect(os.environ["DATABASE_URL"]) as db:
+          with psycopg.connect(
+              os.environ['DATABASE_URL']
+          ) as db:
               with db.cursor() as cur:
                   cur.execute(sql)
 
               tables = [
-                  "subcontractors",
-                  "document_types",
-                  "subcontractor_documents",
-                  "subcontractor_project_assignments",
-                  "project_document_requirements",
-                  "document_reviews",
+                  'subcontractors',
+                  'document_types',
+                  'subcontractor_documents',
+                  'subcontractor_project_assignments',
+                  'project_document_requirements',
+                  'document_reviews'
               ]
 
               with db.cursor() as cur:
                   for table in tables:
                       cur.execute(
-                          "SELECT to_regclass(%s)",
-                          (f"public.{table}",)
+                          'SELECT to_regclass(%s)',
+                          (f'public.{table}',)
                       )
-                      assert cur.fetchone()[0] is not None, table
+                      assert cur.fetchone()[0] is not None
 
                   cur.execute(
-                      "INSERT INTO subcontractors "
-                      "(company_name) VALUES (%s) RETURNING id",
-                      ("IFC Test Nachunternehmer",)
+                      'INSERT INTO subcontractors '
+                      '(company_name) VALUES (%s) '
+                      'RETURNING id',
+                      ('IFC Test Nachunternehmer',)
                   )
                   company_id = cur.fetchone()[0]
 
                   cur.execute(
-                      "INSERT INTO document_types "
-                      "(code, label, requires_expiry) "
-                      "VALUES (%s, %s, TRUE) RETURNING id",
-                      ("LIABILITY", "Betriebshaftpflicht")
+                      'INSERT INTO document_types '
+                      '(code, label, requires_expiry) '
+                      'VALUES (%s, %s, TRUE) RETURNING id',
+                      ('LIABILITY', 'Betriebshaftpflicht')
                   )
                   type_id = cur.fetchone()[0]
 
-                  for project in ("TEST-A", "TEST-B"):
+                  for project in ('TEST-A', 'TEST-B'):
                       cur.execute(
-                          "INSERT INTO subcontractor_project_assignments "
-                          "(subcontractor_id, project_id) "
-                          "VALUES (%s, %s)",
+                          'INSERT INTO '
+                          'subcontractor_project_assignments '
+                          '(subcontractor_id, project_id) '
+                          'VALUES (%s, %s)',
                           (company_id, project)
                       )
-
                       cur.execute(
-                          "INSERT INTO project_document_requirements "
-                          "(project_id, document_type_id) "
-                          "VALUES (%s, %s)",
+                          'INSERT INTO '
+                          'project_document_requirements '
+                          '(project_id, document_type_id) '
+                          'VALUES (%s, %s)',
                           (project, type_id)
                       )
 
                   document_ids = []
                   for version in (1, 2):
                       cur.execute(
-                          "INSERT INTO subcontractor_documents "
-                          "(subcontractor_id, document_type_id, "
-                          "version, storage_key, original_filename, "
-                          "content_type, sha256) "
-                          "VALUES (%s, %s, %s, %s, %s, %s, %s) "
-                          "RETURNING id",
+                          'INSERT INTO subcontractor_documents '
+                          '(subcontractor_id, document_type_id, '
+                          'version, storage_key, original_filename, '
+                          'content_type, sha256) '
+                          'VALUES (%s, %s, %s, %s, %s, %s, %s) '
+                          'RETURNING id',
                           (
-                              company_id, type_id, version,
-                              f"test/company-{company_id}/v{version}",
-                              f"versicherung-v{version}.pdf",
-                              "application/pdf",
+                              company_id,
+                              type_id,
+                              version,
+                              f'test/company-{company_id}/v{version}',
+                              f'versicherung-v{version}.pdf',
+                              'application/pdf',
                               hashlib.sha256(
                                   str(version).encode()
                               ).hexdigest()
@@ -202,41 +259,41 @@ jobs:
                       document_ids.append(cur.fetchone()[0])
 
                   cur.execute(
-                      "INSERT INTO document_reviews "
-                      "(document_id, project_id, decision, "
-                      "reviewer_user_id, notes) "
-                      "VALUES (%s, %s, %s, %s, %s)",
+                      'INSERT INTO document_reviews '
+                      '(document_id, project_id, decision, '
+                      'reviewer_user_id, notes) '
+                      'VALUES (%s, %s, %s, %s, %s)',
                       (
-                          document_ids[1], "TEST-A",
-                          "approved", 1, "Testfreigabe"
+                          document_ids[1],
+                          'TEST-A',
+                          'approved',
+                          1,
+                          'Testfreigabe'
                       )
                   )
 
                   cur.execute(
-                      "SELECT COUNT(*) FROM "
-                      "subcontractor_project_assignments "
-                      "WHERE subcontractor_id = %s",
+                      'SELECT COUNT(*) FROM '
+                      'subcontractor_project_assignments '
+                      'WHERE subcontractor_id = %s',
                       (company_id,)
                   )
                   assert cur.fetchone()[0] == 2
 
                   cur.execute(
-                      "SELECT COUNT(*) FROM subcontractor_documents "
-                      "WHERE subcontractor_id = %s",
+                      'SELECT COUNT(*) FROM '
+                      'subcontractor_documents '
+                      'WHERE subcontractor_id = %s',
                       (company_id,)
                   )
                   assert cur.fetchone()[0] == 2
 
                   cur.execute(
-                      "SELECT decision FROM document_reviews "
-                      "WHERE document_id = %s",
+                      'SELECT decision FROM document_reviews '
+                      'WHERE document_id = %s',
                       (document_ids[1],)
                   )
-                  assert cur.fetchone()[0] == "approved"
+                  assert cur.fetchone()[0] == 'approved'
 
-          print("Subcontractor database tests passed")
-          PY
-
-                  proc.kill()
-                  proc.wait()
+          print('Subcontractor database tests passed')
           PY
