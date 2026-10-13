@@ -1,0 +1,171 @@
+
+name: IFC Digital Subcontractor API Test
+
+on:
+  push:
+    branches:
+      - sprint-subcontractor-api
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-subcontractor-api:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: ifc_test
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: ifc_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ifc_test -d ifc_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://ifc_test:test_password@localhost:5432/ifc_test
+      IFC_API_TOKEN: test-only-token-with-more-than-32-characters-123456
+      IFC_ALLOWED_ORIGIN: https://ifc-test.example
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Check Python syntax
+        run: python -m py_compile server.py
+
+      - name: Test subcontractor API
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import subprocess
+          import sys
+          import time
+          from pathlib import Path
+          from urllib.error import HTTPError, URLError
+          from urllib.request import Request, urlopen
+
+          import psycopg
+          import server
+
+          sql = Path(
+              'database/migrations/001_subcontractor_schema.sql'
+          ).read_text(encoding='utf-8')
+
+          with psycopg.connect(
+              os.environ['DATABASE_URL']
+          ) as connection:
+              connection.execute(sql)
+
+          server.initialize_database()
+
+          port = '18766'
+          base = 'http://127.0.0.1:' + port
+          token = os.environ['IFC_API_TOKEN']
+          env = dict(os.environ, PORT=port)
+
+          proc = subprocess.Popen(
+              [sys.executable, 'server.py'],
+              env=env
+          )
+
+          def request(path, method='GET',
+                      data=None, auth=True):
+              headers = {}
+              if auth:
+                  headers['Authorization'] = 'Bearer ' + token
+              if data is not None:
+                  headers['Content-Type'] = 'application/json'
+                  data = json.dumps(data).encode('utf-8')
+
+              req = Request(
+                  base + path,
+                  data=data,
+                  headers=headers,
+                  method=method
+              )
+              try:
+                  with urlopen(req, timeout=5) as response:
+                      return response.status, json.load(response)
+              except HTTPError as error:
+                  return error.code, json.load(error)
+
+          try:
+              for attempt in range(40):
+                  if proc.poll() is not None:
+                      raise RuntimeError('Server exited')
+                  try:
+                      if request('/health')[0] == 200:
+                          break
+                  except (URLError, TimeoutError):
+                      time.sleep(0.25)
+              else:
+                  raise RuntimeError('Server not ready')
+
+              path = '/api/v1/subcontractors'
+
+              assert request(path, auth=False)[0] == 401
+
+              sample = {
+                  'company_name': 'IFC Testpartner 01',
+                  'contact_name': 'Max Muster',
+                  'contact_email': 'test@example.com'
+              }
+
+              assert request(
+                  path, method='POST',
+                  data=sample, auth=False
+              )[0] == 401
+
+              assert request(
+                  path, method='POST',
+                  data={'company_name': ''}
+              )[0] == 400
+
+              status, saved = request(
+                  path, method='POST', data=sample
+              )
+              assert status == 201, saved
+              company = saved['subcontractor']
+              assert company['id'] > 0
+              assert company['company_name'] == sample['company_name']
+
+              status, loaded = request(path)
+              assert status == 200, loaded
+              assert any(
+                  item['id'] == company['id']
+                  and item['company_name'] == sample['company_name']
+                  for item in loaded['subcontractors']
+              )
+
+              assert request(
+                  '/api/v1/measurements',
+                  auth=False
+              )[0] == 401
+
+              print('Subcontractor API tests passed')
+
+          finally:
+              proc.terminate()
+              try:
+                  proc.wait(timeout=5)
+              except subprocess.TimeoutExpired:
+                  proc.kill()
+                  proc.wait()
+          PY
