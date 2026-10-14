@@ -1,0 +1,88 @@
+
+name: IFC Digital Authentication Security Test
+
+on:
+  push:
+    branches:
+      - sprint-user-authentication
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-authentication:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Check Python syntax
+        run: python -m py_compile auth.py
+
+      - name: Test authentication security
+        run: |
+          python - <<'PY'
+          import inspect
+          import secrets
+          import time
+          import auth
+
+          password = 'IFC-Test-Passwort-2026!'
+          wrong = 'Falsches-Test-Passwort'
+
+          password_hash = auth.hash_password(password)
+          assert password not in password_hash
+          assert auth.verify_password(password, password_hash)
+          assert not auth.verify_password(wrong, password_hash)
+
+          second_hash = auth.hash_password(password)
+          assert password_hash != second_hash
+          assert auth.verify_password(password, second_hash)
+
+          secret = secrets.token_bytes(32)
+          issue_params = inspect.signature(
+              auth.create_session
+          ).parameters
+
+          if 'ttl_seconds' not in issue_params:
+              raise AssertionError(
+                  'create_session requires ttl_seconds'
+              )
+
+          issued = int(time.time())
+          token = auth.create_session(
+              42, secret, ttl_seconds=3600, now=issued
+          )
+
+          claims = auth.verify_session(
+              token, secret, now=issued + 1
+          )
+          assert claims is not None
+          assert claims['uid'] == 42
+
+          assert auth.verify_session(
+              token, secrets.token_bytes(32),
+              now=issued + 1
+          ) is None
+
+          assert auth.verify_session(
+              token + 'x', secret, now=issued + 1
+          ) is None
+
+          assert auth.verify_session(
+              token, secret, now=issued + 3600
+          ) is None
+
+          assert auth.verify_session(
+              'invalid.token', secret
+          ) is None
+
+          print('IFC authentication security tests passed')
+          PY
