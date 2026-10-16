@@ -1,0 +1,41 @@
+
+name: IFC Digital Project Permissions Test
+
+on:
+  push:
+    branches:
+      - sprint-project-permissions
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-project-permissions:
+    name: Test Project Permissions
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Check Python syntax
+        run: |
+          python -m py_compile auth.py
+          python -m py_compile auth_service.py
+          python -m py_compile project_permissions.py
+          python -m py_compile project_permissions_test.py
+
+      - name: Run project permission tests
+        run: |
+          python project_permissions_test.py
