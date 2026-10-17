@@ -14,7 +14,7 @@ from urllib.parse import urlsplit
 import psycopg
 from psycopg.types.json import Jsonb
 from auth_service import AuthenticationError, AuthenticationService
-
+from project_permissions import ProjectPermissionService
 logging.basicConfig(level=logging.INFO)
 DATABASE_URL = os.environ.get("DATABASE_URL")
 MAX_BODY_BYTES = 1024 * 1024
