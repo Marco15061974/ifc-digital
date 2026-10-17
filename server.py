@@ -123,21 +123,36 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(503, {"status": "error", "message": "Authentication unavailable"})
             return None
 
+    
     def authorize_project(self, project_id, permission):
         user = self.authorize_user()
         if user is None:
             return None
+
         try:
-            if not authentication_service().can_access_project(
+            service = ProjectPermissionService(
+                authentication_service()
+            )
+
+            if not service.can_access(
                 user["id"], project_id, permission
             ):
-                self.send_json(403, {"status": "error", "message": "Forbidden"})
+                self.send_json(403, {
+                    "status": "error",
+                    "message": "Forbidden"
+                })
                 return None
+
             return user
+
         except (psycopg.Error, RuntimeError, ValueError):
             logging.exception("Project authorization failed")
-            self.send_json(503, {"status": "error", "message": "Authentication unavailable"})
+            self.send_json(503, {
+                "status": "error",
+                "message": "Authentication unavailable"
+            })
             return None
+
 
     def allow_subcontractors(self):
         token = self.bearer()
