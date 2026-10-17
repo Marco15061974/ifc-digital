@@ -39,3 +39,7 @@ jobs:
       - name: Run project permissions tests
         run: |
           python project_permissions_test.py
+
+      - name: Run HTTP authorization tests
+        run: |
+          python project_permissions_http_test.py
