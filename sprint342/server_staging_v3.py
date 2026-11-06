@@ -7,6 +7,7 @@ project permission check endpoint.
 No changes to the existing server or Render deployment.
 """
 
+import logging
 import sys
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
@@ -71,7 +72,6 @@ class Handler(server_staging_v2.Handler):
                 user["id"], project_id, permission
             )
         except Exception:
-            import logging
             logging.exception("Project permission check failed")
             return self.send_json(
                 503,
