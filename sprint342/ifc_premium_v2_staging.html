@@ -1,0 +1,716 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>IFC Digital Premium V2 – Staging</title>
+<style>
+:root{
+font-family:system-ui,Arial,sans-serif;
+color:#edf5ff;
+background:#101820;
+color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{margin:0}
+header{
+min-height:82px;
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:15px;
+padding:12px 26px;
+background:#17232e;
+border-bottom:1px solid #34485a;
+}
+header strong{color:#14aafa;font-size:25px}
+.brand{font-weight:900;font-size:30px;letter-spacing:2px}
+.brand span{color:#17aaff}
+small,.muted{color:#b9c9d7}
+.shell{display:flex}
+aside{
+width:220px;
+background:#151f29;
+min-height:calc(100vh - 82px);
+padding:20px 12px;
+border-right:1px solid #34485a;
+}
+nav button{
+display:block;
+width:100%;
+text-align:left;
+margin-bottom:9px;
+background:transparent;
+color:#d9e8f5;
+border:0;
+border-radius:9px;
+padding:14px;
+font-size:15px;
+cursor:pointer;
+}
+nav button.active,nav button:hover{
+background:#099fe8;color:white;
+}
+main{flex:1;min-width:0;padding:26px;max-width:1600px}
+h1{font-size:29px;margin:0 0 7px}
+h2{font-size:18px;margin:0 0 18px}
+.kpis{
+display:grid;
+grid-template-columns:repeat(4,1fr);
+gap:15px;margin:25px 0;
+}
+.kpi,.panel{
+background:#202e3c;
+border:1px solid #3b5062;
+border-radius:12px;
+padding:19px;
+}
+.kpi strong{font-size:30px;display:block}
+.kpi span{color:#a9c3d6}
+.layout{
+display:grid;
+grid-template-columns:1.3fr 1fr;
+gap:16px;
+}
+.panel{margin-bottom:16px;overflow:auto}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th{text-align:left;color:#a9c3d6}
+td,th{padding:13px 9px;border-bottom:1px solid #35495a}
+tr:last-child td{border:0}
+.pill{
+border-radius:6px;
+padding:5px 8px;
+background:#0a6da4;
+font-size:12px;
+white-space:nowrap;
+}
+.progress{
+height:10px;background:#384b5b;
+border-radius:10px;min-width:90px;overflow:hidden;
+}
+.progress>div{
+height:100%;background:#11aaf5;border-radius:10px;
+}
+.task{
+display:flex;align-items:center;gap:10px;
+border-bottom:1px solid #34495b;padding:12px 0;
+}
+.task input{width:19px;height:19px;accent-color:#0ba9f2}
+.task.done span{text-decoration:line-through;color:#92a4b2}
+button.primary,button.secondary{
+border:0;border-radius:8px;padding:11px 16px;
+cursor:pointer;color:white;font-weight:600;
+}
+button.primary{background:#0ba7f0}
+button.secondary{background:#3a5368}
+button:disabled{opacity:.5;cursor:not-allowed}
+.note{
+border:1px solid #48647b;
+background:#253c50;border-radius:9px;
+padding:13px;margin-bottom:20px;
+}
+.hidden{display:none!important}
+select,input[type=text],input[type=email],
+input[type=password],input[type=url]{
+padding:11px;background:#172738;color:white;
+border:1px solid #55718b;border-radius:7px;
+max-width:100%;font:inherit;
+}
+input:focus,select:focus,button:focus-visible{
+outline:2px solid #13aafa;outline-offset:2px;
+}
+.field{display:flex;flex-direction:column;gap:7px;margin-bottom:14px}
+.formgrid{
+display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+gap:12px;
+}
+.actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.status{
+padding:10px 12px;border-radius:7px;
+background:#162533;border:1px solid #456078;
+margin:12px 0;white-space:pre-wrap;
+}
+.status.error{border-color:#b85a67;color:#ffc5cd}
+.status.ok{border-color:#398b76;color:#a8f2d8}
+.tag{
+display:inline-block;padding:5px 9px;
+border:1px solid #55718b;border-radius:20px;font-size:12px;
+}
+.warn{color:#ffce89}
+#detail{margin-top:15px}
+footer{color:#91a6b8;font-size:12px;margin-top:22px}
+@media(max-width:1050px){
+.kpis{grid-template-columns:repeat(2,1fr)}
+.layout{grid-template-columns:1fr}
+aside{width:170px}
+}
+@media(max-width:650px){
+header{padding:12px}
+.brand{font-size:21px}
+.shell{display:block}
+aside{width:100%;min-height:0;padding:7px;overflow:auto}
+nav{display:flex;gap:5px}
+nav button{white-space:nowrap;width:auto;margin:0;padding:10px}
+main{padding:15px}
+.formgrid{grid-template-columns:1fr}
+.kpis{gap:8px}
+.kpi{padding:12px}
+.kpi strong{font-size:23px}
+}
+</style>
+</head>
+<body>
+
+<header>
+<div>
+<strong>IFC Digital</strong>
+<div><small>Digitale Arbeitsplattform für IFC Folientechnik</small></div>
+</div>
+<div class="brand">IFC<span>◢</span></div>
+<div style="text-align:right">
+<span id="modeTag" class="tag">Premium · Staging</span>
+<div><small id="userTag">Nicht angemeldet</small></div>
+</div>
+</header>
+
+<div class="shell">
+<aside>
+<nav id="nav">
+<button data-view="dashboard">⌂ Projektzentrale</button>
+<button data-view="projects">▣ Projekte</button>
+<button data-view="tasks">☑ Aufgaben</button>
+<button data-view="teams">♙ Teams</button>
+<button data-view="rights">♢ Berechtigungen</button>
+<button class="active" data-view="login">♙ Anmeldung / API</button>
+</nav>
+</aside>
+
+<main>
+<div class="note">
+<b>IFC Digital Premium V2 · Staging</b>
+<p>Testumgebung. Projekte, Aufgaben und Teams sind ausschließlich Demo-Daten. Keine produktiven Kundendaten eingeben.</p>
+</div>
+
+<section id="dashboard" class="hidden">
+<h1>Projektzentrale</h1>
+<div class="muted">Übersicht und Projektsteuerung · Demo</div>
+
+<div class="kpis">
+<div class="kpi"><strong>4</strong><span>Demo-Projekte</span></div>
+<div class="kpi"><strong id="openCount">3</strong><span>Offene Demo-Aufgaben</span></div>
+<div class="kpi"><strong>3</strong><span>Projektteams</span></div>
+<div class="kpi"><strong>75 %</strong><span>Demo-Terminstatus</span></div>
+</div>
+
+<div class="layout">
+<div class="panel">
+<h2>Aktuelle Projekte</h2>
+<div id="dashboardProjects"></div>
+</div>
+<div class="panel">
+<h2>Meine Aufgaben</h2>
+<div id="dashboardTasks"></div>
+</div>
+<div class="panel">
+<h2>Projektfortschritt</h2>
+<div id="progressList"></div>
+</div>
+<div class="panel">
+<h2>Verbindungsstatus</h2>
+<p id="dashboardConnection" class="muted">Keine aktive Anmeldung</p>
+<button class="secondary" id="openLogin">Anmeldung / API öffnen</button>
+</div>
+</div>
+</section>
+
+<section id="projects" class="hidden">
+<h1>Projekte</h1>
+<p class="muted">Musterprojekte auswählen und Status ansehen.</p>
+<div class="panel">
+<label for="projectSelect">Projekt auswählen:</label>
+<select id="projectSelect"></select>
+<div id="detail"></div>
+
+<hr style="border:0;border-top:1px solid #34495b;margin:20px 0">
+
+<h2>Projektzugriff – Staging-Prüfung</h2>
+<p class="muted">Das Ergebnis wird serverseitig ermittelt. Die Projekt-IDs sind Demo-Daten.</p>
+
+<div class="actions">
+<label for="permissionSelect">Berechtigung</label>
+<select id="permissionSelect">
+<option value="projects.read">Projekt ansehen</option>
+<option value="measurements.read">Aufmaß ansehen</option>
+<option value="reports.read">Rapport ansehen</option>
+<option value="reports.write">Rapport bearbeiten</option>
+<option value="finance.read">Finanzen ansehen</option>
+</select>
+<button id="checkAccess" class="primary" disabled>Serverberechtigung prüfen</button>
+</div>
+
+<div id="permissionStatus" class="status" role="status">Keine Serveranmeldung.</div>
+</div>
+</section>
+
+<section id="tasks" class="hidden">
+<h1>Aufgaben</h1>
+<p class="muted">Demo-Aufgaben. Änderungen werden nicht dauerhaft gespeichert.</p>
+<div class="panel" id="allTasks"></div>
+</section>
+
+<section id="teams" class="hidden">
+<h1>Teams</h1>
+<div class="panel">
+<h2>Beispiel-Projektteams</h2>
+<p>Montageteam A · Demo</p>
+<p>Aufmaßteam B · Demo</p>
+<p>Projektleitung · Demo</p>
+</div>
+</section>
+
+<section id="rights" class="hidden">
+<h1>Berechtigungen</h1>
+<div class="panel">
+<h2>Rollenübersicht · Vorschau</h2>
+<label>Benutzerrolle
+<select id="role">
+<option value="admin">Geschäftsführer / Admin</option>
+<option value="office">Büro / Verwaltung</option>
+<option value="surveyor">Aufmaßtechniker</option>
+<option value="installer">Monteur</option>
+<option value="client_manager">Bauleiter Auftraggeber</option>
+<option value="subcontractor">Nachunternehmer</option>
+</select>
+</label>
+<div id="rightsDetail" style="margin-top:16px"></div>
+<p class="muted">Die Auswahl verändert keine echten Benutzerrechte. Nur der Server entscheidet über Zugriffe.</p>
+</div>
+</section>
+
+<section id="login">
+<h1>Anmeldung & Staging-Verbindung</h1>
+<p class="muted">Persönlicher Zugang zur IFC-Digital-Testumgebung.</p>
+
+<div class="panel">
+<h2>1 · Serververbindung</h2>
+<div class="field">
+<label for="apiBase">Fest hinterlegter Staging-Server</label>
+<input id="apiBase" type="url" readonly value="https://ifc-digital-staging.onrender.com">
+</div>
+<span class="tag" id="apiState">Keine aktive Sitzung</span>
+</div>
+
+<div class="panel">
+<h2>2 · Benutzeranmeldung</h2>
+<form id="loginForm">
+<div class="formgrid">
+<div class="field">
+<label for="email">E-Mail · Testkonto</label>
+<input id="email" type="email" autocomplete="username" maxlength="254" required>
+</div>
+<div class="field">
+<label for="password">Testpasswort</label>
+<input id="password" type="password" autocomplete="current-password" maxlength="1024" required>
+</div>
+</div>
+<div class="actions">
+<button id="signIn" class="primary" type="submit" disabled>Am Staging-Server anmelden</button>
+<button id="signOut" class="secondary" type="button" disabled>Abmelden</button>
+</div>
+</form>
+<div id="loginStatus" class="status" role="status" aria-live="polite">Noch nicht angemeldet.</div>
+<p class="warn">Ausschließlich das eingerichtete Testkonto verwenden.</p>
+</div>
+
+<div class="panel">
+<h2>3 · Aktive Sitzung</h2>
+<p id="sessionInfo" class="muted">Nicht angemeldet.</p>
+<p id="sessionCountdown" class="muted"></p>
+<p class="muted">Das Sitzungstoken bleibt ausschließlich im Arbeitsspeicher. Die lokale Abmeldung entfernt das Token aus dieser Oberfläche.</p>
+</div>
+</section>
+
+<footer>IFC Digital Premium V2 · Sprint 342 · Staging · Nicht produktionsbereit</footer>
+</main>
+</div>
+
+<script>
+'use strict';
+
+const API = 'https://ifc-digital-staging.onrender.com';
+const trustedOrigin = location.origin === API;
+const $ = id => document.getElementById(id);
+
+let token = null;
+let user = null;
+let expiresAt = 0;
+let busy = false;
+let generation = 0;
+let checking = false;
+
+const projects = [
+{id:'PRJ-DEMO-001',name:'Fassadenfolie Bürokomplex',city:'Stuttgart',status:'In Bearbeitung',progress:72},
+{id:'PRJ-DEMO-002',name:'Sonnenschutz Schulzentrum',city:'München',status:'Planung',progress:18},
+{id:'PRJ-DEMO-003',name:'Sicherheitsfolie Klinik',city:'Zürich',status:'In Bearbeitung',progress:64},
+{id:'PRJ-DEMO-004',name:'Designfolie Showroom',city:'Stuttgart',status:'Abnahme',progress:100}
+];
+
+const tasks = [
+{name:'Freigabe Musterprojekt 001',done:false},
+{name:'Materialbestellung Musterprojekt 003',done:false},
+{name:'Abnahme Musterprojekt 004',done:true},
+{name:'Teamplanung Musterprojekt 002',done:false}
+];
+
+function show(view){
+document.querySelectorAll('#nav button').forEach(b=>{
+b.classList.toggle('active',b.dataset.view===view);
+});
+document.querySelectorAll('main>section').forEach(s=>{
+s.classList.toggle('hidden',s.id!==view);
+});
+}
+
+document.querySelectorAll('#nav button').forEach(b=>{
+b.addEventListener('click',()=>show(b.dataset.view));
+});
+$('openLogin').addEventListener('click',()=>show('login'));
+
+function status(id,message,kind=''){
+const el=$(id);
+el.textContent=message;
+el.className='status'+(kind?' '+kind:'');
+}
+
+function makeProgress(value){
+const bar=document.createElement('div');
+bar.className='progress';
+const inner=document.createElement('div');
+inner.style.width=value+'%';
+bar.append(inner);
+return bar;
+}
+
+function projectTable(){
+const table=document.createElement('table');
+table.innerHTML='<thead><tr><th>Projekt</th><th>Status</th><th>Fortschritt</th></tr></thead>';
+const body=document.createElement('tbody');
+
+projects.forEach(p=>{
+const tr=document.createElement('tr');
+const a=document.createElement('td');
+a.textContent=p.name+' · '+p.city;
+const s=document.createElement('td');
+const tag=document.createElement('span');
+tag.className='pill';
+tag.textContent=p.status;
+s.append(tag);
+const d=document.createElement('td');
+d.append(makeProgress(p.progress),document.createTextNode(' '+p.progress+' %'));
+tr.append(a,s,d);
+body.append(tr);
+});
+
+table.append(body);
+$('dashboardProjects').replaceChildren(table);
+}
+
+function renderTasks(target){
+const parent=$(target);
+parent.replaceChildren();
+tasks.forEach(t=>{
+const line=document.createElement('label');
+line.className='task'+(t.done?' done':'');
+const cb=document.createElement('input');
+cb.type='checkbox';
+cb.checked=t.done;
+cb.addEventListener('change',()=>{
+t.done=cb.checked;
+render();
+});
+const txt=document.createElement('span');
+txt.textContent=t.name;
+line.append(cb,txt);
+parent.append(line);
+});
+}
+
+function render(){
+projectTable();
+renderTasks('dashboardTasks');
+renderTasks('allTasks');
+$('openCount').textContent=tasks.filter(t=>!t.done).length;
+const progress=$('progressList');
+progress.replaceChildren();
+projects.forEach(p=>{
+const row=document.createElement('div');
+row.style.margin='15px 0';
+const name=document.createElement('div');
+name.textContent=p.name+' · '+p.progress+' %';
+row.append(name,makeProgress(p.progress));
+progress.append(row);
+});
+}
+
+projects.forEach(p=>{
+const o=document.createElement('option');
+o.value=p.id;
+o.textContent=p.name;
+$('projectSelect').append(o);
+});
+
+function detail(){
+const p=projects.find(x=>x.id===$('projectSelect').value);
+$('detail').textContent=p.id+' · '+p.city+' · '+p.status+' · Fortschritt: '+p.progress+' %';
+status('permissionStatus','Für diese Auswahl liegt noch keine aktuelle Berechtigungsprüfung vor.');
+}
+
+$('projectSelect').addEventListener('change',detail);
+$('permissionSelect').addEventListener('change',detail);
+detail();
+
+const rights={
+admin:'Geschäftsführer und Administration.',
+office:'Projektverwaltung, Aufgaben und Dokumente.',
+surveyor:'Digitales Aufmaß und zugewiesene Projekte.',
+installer:'Zugewiesene Projekte, Rapporte und Fotos.',
+client_manager:'Projektansicht, Rapporte und Abnahme.',
+subcontractor:'Zugewiesene Projekte und Dokumente.'
+};
+
+function showRights(){
+$('rightsDetail').textContent=rights[$('role').value];
+}
+
+$('role').addEventListener('change',showRights);
+showRights();
+render();
+
+function updateButtons(){
+$('signIn').disabled=!trustedOrigin||busy||!!token;
+$('signOut').disabled=!token;
+$('checkAccess').disabled=!token||checking;
+$('email').disabled=busy||!!token;
+$('password').disabled=busy||!!token;
+}
+
+function resetSession(message='Nicht angemeldet.',kind=''){
+generation++;
+token=null;
+user=null;
+expiresAt=0;
+checking=false;
+$('password').value='';
+$('userTag').textContent='Nicht angemeldet';
+$('modeTag').textContent='Premium · Staging';
+$('apiState').textContent='Keine aktive Sitzung';
+$('sessionInfo').textContent='Nicht angemeldet.';
+$('sessionCountdown').textContent='';
+$('dashboardConnection').textContent='Keine aktive Anmeldung';
+status('permissionStatus','Keine Serveranmeldung.');
+status('loginStatus',message,kind);
+updateButtons();
+}
+
+function validSession(){
+if(!token)return false;
+if(Date.now()>=expiresAt){
+resetSession('Sitzung abgelaufen. Bitte erneut anmelden.');
+show('login');
+return false;
+}
+return true;
+}
+
+function updateCountdown(){
+if(!validSession())return;
+const seconds=Math.max(0,Math.ceil((expiresAt-Date.now())/1000));
+const minutes=Math.floor(seconds/60);
+const rest=String(seconds%60).padStart(2,'0');
+$('sessionCountdown').textContent='Verbleibende Sitzungsdauer: '+minutes+':'+rest+' Minuten';
+}
+
+setInterval(updateCountdown,1000);
+document.addEventListener('visibilitychange',updateCountdown);
+
+$('signOut').addEventListener('click',()=>{
+resetSession('Lokal abgemeldet. Das serverseitige Token kann bis zum Ablauf gültig bleiben.');
+show('login');
+});
+
+async function jsonRequest(path,options){
+if(!trustedOrigin){
+throw Error('Diese Anmeldung ist nur auf dem IFC-Staging-Server erlaubt.');
+}
+const response=await fetch(API+path,{
+...options,
+cache:'no-store',
+mode:'same-origin',
+credentials:'omit',
+redirect:'error',
+signal:AbortSignal.timeout(15000),
+headers:{
+'Accept':'application/json',
+...(options.headers||{})
+}
+});
+
+let data;
+try{
+data=await response.json();
+}catch{
+throw Error('Ungültige Serverantwort (HTTP '+response.status+').');
+}
+return {response,data};
+}
+
+$('loginForm').addEventListener('submit',async event=>{
+event.preventDefault();
+if(busy||token||!trustedOrigin)return;
+
+const email=$('email').value.trim();
+const password=$('password').value;
+
+if(!email||!password){
+status('loginStatus','Bitte Test-E-Mail und Testpasswort eingeben.','error');
+return;
+}
+
+resetSession('Anmeldung wird geprüft …');
+busy=true;
+updateButtons();
+const currentGeneration=generation;
+const startedAt=Date.now();
+
+try{
+const {response,data}=await jsonRequest('/api/v1/auth/login',{
+method:'POST',
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify({email,password})
+});
+
+if(currentGeneration!==generation)return;
+
+if(!response.ok){
+status('loginStatus',
+response.status===401?'Anmeldung abgelehnt (401).':
+response.status===503?'Anmeldedienst nicht verfügbar (503).':
+'Anmeldung fehlgeschlagen (HTTP '+response.status+').',
+'error');
+return;
+}
+
+if(
+typeof data.token!=='string'||
+!data.token||
+!data.user||
+!Number.isInteger(data.user.id)||
+data.user.id<=0||
+!Number.isInteger(data.expires_in)||
+data.expires_in<=0||
+data.expires_in>3600
+){
+throw Error('Unvollständige oder ungültige Sitzungsdaten.');
+}
+
+token=data.token;
+user=data.user;
+expiresAt=startedAt+data.expires_in*1000;
+
+if(!validSession())return;
+
+const name=user.display_name||user.email||'Testbenutzer';
+$('userTag').textContent=name;
+$('modeTag').textContent='Premium · Staging-Sitzung';
+$('apiState').textContent='Staging-Sitzung aktiv';
+$('sessionInfo').textContent='Angemeldet: '+name+' · Benutzer-ID '+user.id;
+$('dashboardConnection').textContent='Staging-Sitzung aktiv · Projekte weiterhin Demo-Daten';
+
+status('loginStatus','Staging-Anmeldung erfolgreich.','ok');
+updateCountdown();
+
+}catch(e){
+if(currentGeneration===generation){
+resetSession('Keine Anmeldung möglich: '+e.message,'error');
+}
+}finally{
+$('password').value='';
+busy=false;
+updateButtons();
+}
+});
+
+$('checkAccess').addEventListener('click',async()=>{
+if(checking||!validSession())return;
+
+const projectId=$('projectSelect').value;
+const permission=$('permissionSelect').value;
+const currentGeneration=generation;
+const currentToken=token;
+
+checking=true;
+updateButtons();
+status('permissionStatus','Serverberechtigung wird geprüft …');
+
+try{
+const path='/api/v1/project-permissions/check?'+
+new URLSearchParams({
+project_id:projectId,
+permission:permission
+});
+
+const {response,data}=await jsonRequest(path,{
+method:'GET',
+headers:{Authorization:'Bearer '+currentToken}
+});
+
+if(currentGeneration!==generation||!validSession())return;
+
+if(response.status===401){
+resetSession('Sitzung vom Server abgelehnt (401).','error');
+show('login');
+return;
+}
+
+if(
+$('projectSelect').value!==projectId||
+$('permissionSelect').value!==permission
+)return;
+
+if(
+response.status===200&&
+data.allowed===true&&
+data.project_id===projectId&&
+data.permission===permission
+){
+status('permissionStatus','Server bestätigt Zugriff (200): '+projectId+' / '+permission+'. Dies ist eine Demo-Projekt-ID.','ok');
+}else if(response.status===403){
+status('permissionStatus','Zugriff vom Server verweigert (403).','error');
+}else{
+status('permissionStatus','Keine bestätigte Freigabe. HTTP '+response.status+'.','error');
+}
+
+}catch(e){
+if(currentGeneration===generation){
+status('permissionStatus','Berechtigungsprüfung nicht möglich: '+e.message,'error');
+}
+}finally{
+if(currentGeneration===generation){
+checking=false;
+updateButtons();
+}
+}
+});
+
+if(!trustedOrigin){
+$('email').disabled=true;
+$('password').disabled=true;
+status('loginStatus','Anmeldung gesperrt: Diese Datei muss direkt über den offiziellen IFC-Staging-Server bereitgestellt werden.','error');
+}
+
+updateButtons();
+show('login');
+</script>
+</body>
+</html>
