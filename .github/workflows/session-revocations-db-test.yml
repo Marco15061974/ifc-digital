@@ -172,3 +172,5 @@ jobs:
               print("Cascade deletion OK")
               print("ALL SESSION REVOCATION DB TESTS PASSED")
           PY
+      - name: Run session revocation integration tests
+        run: python sprint342/session_revocations_test.py
