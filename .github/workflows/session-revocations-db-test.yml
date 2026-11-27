@@ -174,3 +174,5 @@ jobs:
           PY
       - name: Run session revocation integration tests
         run: python sprint342/session_revocations_test.py
+      - name: Run authentication service V5 tests
+        run: python -m sprint342.auth_service_v5_test
