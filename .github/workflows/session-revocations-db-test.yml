@@ -1,0 +1,174 @@
+name: IFC Digital Session Revocations DB Test
+
+on:
+  push:
+    branches:
+      - sprint-project-permissions
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  session-revocations-db-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: ifc_test
+          POSTGRES_PASSWORD: ifc_test_only
+          POSTGRES_DB: ifc_session_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ifc_test -d ifc_session_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://ifc_test:ifc_test_only@127.0.0.1:5432/ifc_session_test
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install PostgreSQL driver
+        run: python -m pip install "psycopg[binary]>=3.2,<4"
+
+      - name: Apply migrations and test schema
+        run: |
+          python - <<'PY'
+          import os
+          import psycopg
+          from pathlib import Path
+
+          with psycopg.connect(
+              os.environ["DATABASE_URL"],
+              autocommit=True
+          ) as conn:
+
+              db = conn.execute(
+                  "SELECT current_database()"
+              ).fetchone()[0]
+
+              assert db == "ifc_session_test"
+
+              migrations = Path("database/migrations")
+
+              for filename in (
+                  "001_subcontractor_schema.sql",
+                  "002_users_roles_schema.sql",
+                  "003_project_assignments_schema.sql",
+                  "004_session_revocations_schema.sql",
+              ):
+                  conn.execute(
+                      (migrations / filename).read_text(
+                          encoding="utf-8"
+                      )
+                  )
+                  print("Migration OK:", filename)
+
+              conn.execute(
+                  (migrations /
+                   "004_session_revocations_schema.sql"
+                  ).read_text(encoding="utf-8")
+              )
+              print("Repeated migration OK")
+
+              user_id = conn.execute(
+                  """
+                  INSERT INTO public.ifc_users
+                      (email, display_name)
+                  VALUES (%s, %s)
+                  RETURNING id
+                  """,
+                  ("session-test@ifc.test", "Session Test")
+              ).fetchone()[0]
+
+              def insert_revocation(nonce, uid):
+                  conn.execute(
+                      """
+                      INSERT INTO public.ifc_session_revocations
+                          (nonce, user_id, expires_at)
+                      VALUES (%s, %s, NOW() + INTERVAL '1 hour')
+                      """,
+                      (nonce, uid)
+                  )
+
+              nonce = "a" * 32
+              insert_revocation(nonce, user_id)
+
+              row = conn.execute(
+                  """
+                  SELECT user_id
+                  FROM public.ifc_session_revocations
+                  WHERE nonce = %s
+                  """,
+                  (nonce,)
+              ).fetchone()
+
+              assert row == (user_id,)
+              print("Revocation storage OK")
+
+              try:
+                  insert_revocation(nonce, user_id)
+              except psycopg.errors.UniqueViolation:
+                  print("Duplicate nonce rejected")
+              else:
+                  raise AssertionError("Duplicate accepted")
+
+              try:
+                  insert_revocation("invalid", user_id)
+              except psycopg.errors.CheckViolation:
+                  print("Invalid nonce rejected")
+              else:
+                  raise AssertionError("Invalid nonce accepted")
+
+              try:
+                  conn.execute(
+                      """
+                      INSERT INTO public.ifc_session_revocations
+                          (nonce, user_id, expires_at)
+                      VALUES (%s, %s, NOW() - INTERVAL '1 hour')
+                      """,
+                      ("b" * 32, user_id)
+                  )
+              except psycopg.errors.CheckViolation:
+                  print("Invalid expiry rejected")
+              else:
+                  raise AssertionError("Invalid expiry accepted")
+
+              try:
+                  insert_revocation("c" * 32, -1)
+              except psycopg.errors.ForeignKeyViolation:
+                  print("Unknown user rejected")
+              else:
+                  raise AssertionError("Unknown user accepted")
+
+              conn.execute(
+                  "DELETE FROM public.ifc_users WHERE id = %s",
+                  (user_id,)
+              )
+
+              remaining = conn.execute(
+                  """
+                  SELECT COUNT(*)
+                  FROM public.ifc_session_revocations
+                  WHERE user_id = %s
+                  """,
+                  (user_id,)
+              ).fetchone()[0]
+
+              assert remaining == 0
+              print("Cascade deletion OK")
+              print("ALL SESSION REVOCATION DB TESTS PASSED")
+          PY
